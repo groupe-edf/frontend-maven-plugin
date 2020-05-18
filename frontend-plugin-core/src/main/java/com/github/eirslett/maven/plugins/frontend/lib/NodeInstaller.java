@@ -17,7 +17,7 @@ public class NodeInstaller {
     public static final String INSTALL_PATH = "/node";
 
     public static final String DEFAULT_NODEJS_DOWNLOAD_ROOT = "https://nodejs.org/dist/";
-
+    
     private static final Object LOCK = new Object();
 
     private String npmVersion, nodeVersion, nodeDownloadRoot, userName, password;
@@ -130,6 +130,9 @@ public class NodeInstaller {
                 this.config.getPlatform().getLongNodeFilename(this.nodeVersion, false);
             String downloadUrl = this.nodeDownloadRoot
                 + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
+            
+            logger.info("###########1test haqq:");
+            
             String classifier = this.config.getPlatform().getNodeClassifier();
 
             File tmpDirectory = getTempDirectory();
@@ -138,11 +141,19 @@ public class NodeInstaller {
                 this.config.getPlatform().getArchiveExtension());
 
             File archive = this.config.getCacheResolver().resolve(cacheDescriptor);
-
+            
+            File[] binary = downloadShaFile(classifier);
+            
+            File binarySha = binary[0] ;
+            
+            File binaryShaFile = binary[1] ;
+            
             downloadFileIfMissing(downloadUrl, archive, this.userName, this.password);
-
+            
             try {
                 extractFile(archive, tmpDirectory);
+                extractFile(binarySha, tmpDirectory);// The sha archive extraction
+                extractFile(binaryShaFile, tmpDirectory);
             } catch (ArchiveExtractionException e) {
                 if (e.getCause() instanceof EOFException) {
                     // https://github.com/eirslett/frontend-maven-plugin/issues/794
@@ -218,18 +229,31 @@ public class NodeInstaller {
                 this.config.getPlatform().getLongNodeFilename(this.nodeVersion, true);
             String downloadUrl = this.nodeDownloadRoot
                 + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, true);
+            
+            this.logger.info("###########2test haqq:");
+            
             String classifier = this.config.getPlatform().getNodeClassifier();
 
             File tmpDirectory = getTempDirectory();
 
             CacheDescriptor cacheDescriptor = new CacheDescriptor("node", this.nodeVersion, classifier,
                 this.config.getPlatform().getArchiveExtension());
-
+            
             File archive = this.config.getCacheResolver().resolve(cacheDescriptor);
-
+            
+            File[] binary = downloadShaFile(classifier);
+            
+            File binarySha = binary[0];
+            
+            File binaryShaFile = binary[1];
+            
             downloadFileIfMissing(downloadUrl, archive, this.userName, this.password);
-
+            
             extractFile(archive, tmpDirectory);
+            
+            extractFile(binarySha, tmpDirectory);
+            
+            extractFile(binaryShaFile, tmpDirectory);
 
             // Search for the node binary
             File nodeBinary = new File(tmpDirectory, longNodeFilename + File.separator + "node.exe");
@@ -271,6 +295,9 @@ public class NodeInstaller {
     private void installNodeForWindows() throws InstallationException {
         final String downloadUrl = this.nodeDownloadRoot
             + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
+        
+        this.logger.info("###########3test haqq:");
+        
         try {
             File destinationDirectory = getInstallDirectory();
 
@@ -280,11 +307,13 @@ public class NodeInstaller {
 
             CacheDescriptor cacheDescriptor =
                 new CacheDescriptor("node", this.nodeVersion, classifier, "exe");
-
+            
             File binary = this.config.getCacheResolver().resolve(cacheDescriptor);
-
+            
+            downloadShaFile(classifier);
+            
             downloadFileIfMissing(downloadUrl, binary, this.userName, this.password);
-
+            
             this.logger.info("Copying node binary from {} to {}", binary, destination);
             FileUtils.copyFile(binary, destination);
 
@@ -338,4 +367,39 @@ public class NodeInstaller {
         this.logger.info("Downloading {} to {}", downloadUrl, destination);
         this.fileDownloader.download(downloadUrl, destination.getPath(), userName, password);
     }
+    
+    private File[] downloadShaFile(String classifier) throws DownloadException {
+        String downloadShasumFile = this.nodeDownloadRoot + "/" + this.nodeVersion + "/SHASUMS256.txt";
+        String downloadShasumFileSign = this.nodeDownloadRoot + "/" + this.nodeVersion + "/SHASUMS256.txt.sig";
+
+        CacheDescriptor cacheDescriptorShaFile = new CacheDescriptor("node", this.nodeVersion, classifier, "txt");
+        CacheDescriptor cacheDescriptorShaFileSign = new CacheDescriptor("node", this.nodeVersion, classifier, "sig");
+
+        File binaryShaFile = this.config.getCacheResolver().resolve(cacheDescriptorShaFile);
+
+        File binaryShaFileSign = this.config.getCacheResolver().resolve(cacheDescriptorShaFileSign);
+
+        downloadFile(downloadShasumFile, binaryShaFile, this.userName, this.password);
+
+        downloadFile(downloadShasumFileSign, binaryShaFileSign, this.userName, this.password);
+
+        File binary[] = new File[2];
+
+        binary[0] = binaryShaFile;
+
+        binary[1] = binaryShaFileSign;
+
+        try {
+            boolean value = GpgSignatureVerif.verify(binary[0], binary[1]);
+
+            this.logger.info("##############haqq: " + value);
+
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return binary;
+    }
+
 }
