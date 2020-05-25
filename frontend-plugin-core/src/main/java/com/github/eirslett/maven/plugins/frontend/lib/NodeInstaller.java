@@ -17,7 +17,7 @@ public class NodeInstaller {
     public static final String INSTALL_PATH = "/node";
 
     public static final String DEFAULT_NODEJS_DOWNLOAD_ROOT = "https://nodejs.org/dist/";
-    
+
     private static final Object LOCK = new Object();
 
     private String npmVersion, nodeVersion, nodeDownloadRoot, userName, password;
@@ -66,8 +66,8 @@ public class NodeInstaller {
         if (this.npmVersion != null) {
             if ("provided".equals(this.npmVersion)) {
                 if (Integer.parseInt(this.nodeVersion.replace("v", "").split("[.]")[0]) < 4) {
-                    throw new InstallationException("NPM version is '" + this.npmVersion
-                        + "' but Node didn't include NPM prior to v4.0.0");
+                    throw new InstallationException(
+                            "NPM version is '" + this.npmVersion + "' but Node didn't include NPM prior to v4.0.0");
                 }
                 return true;
             }
@@ -105,15 +105,14 @@ public class NodeInstaller {
             NodeExecutorConfig executorConfig = new InstallNodeExecutorConfig(this.config);
             File nodeFile = executorConfig.getNodePath();
             if (nodeFile.exists()) {
-                final String version =
-                    new NodeExecutor(executorConfig, Arrays.asList("--version"), null).executeAndGetResult(logger);
+                final String version = new NodeExecutor(executorConfig, Arrays.asList("--version"), null)
+                        .executeAndGetResult(logger);
 
                 if (version.equals(this.nodeVersion)) {
                     this.logger.info("Node {} is already installed.", version);
                     return true;
                 } else {
-                    this.logger.info("Node {} was installed, but we need version {}", version,
-                        this.nodeVersion);
+                    this.logger.info("Node {} was installed, but we need version {}", version, this.nodeVersion);
                     return false;
                 }
             } else {
@@ -126,30 +125,29 @@ public class NodeInstaller {
 
     private void installNodeDefault() throws InstallationException {
         try {
-            final String longNodeFilename =
-                this.config.getPlatform().getLongNodeFilename(this.nodeVersion, false);
+            final String longNodeFilename = this.config.getPlatform().getLongNodeFilename(this.nodeVersion, false);
             String downloadUrl = this.nodeDownloadRoot
-                + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
-            
+                    + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
+
             logger.info("###########1test haqq:");
-            
+
             String classifier = this.config.getPlatform().getNodeClassifier();
 
             File tmpDirectory = getTempDirectory();
 
             CacheDescriptor cacheDescriptor = new CacheDescriptor("node", this.nodeVersion, classifier,
-                this.config.getPlatform().getArchiveExtension());
+                    this.config.getPlatform().getArchiveExtension());
 
             File archive = this.config.getCacheResolver().resolve(cacheDescriptor);
-            
+
             File[] binary = downloadShaFile(classifier);
-            
-            File binarySha = binary[0] ;
-            
-            File binaryShaFile = binary[1] ;
-            
+
+            File binarySha = binary[0];
+
+            File binaryShaFile = binary[1];
+
             downloadFileIfMissing(downloadUrl, archive, this.userName, this.password);
-            
+
             try {
                 extractFile(archive, tmpDirectory);
                 extractFile(binarySha, tmpDirectory);// The sha archive extraction
@@ -159,8 +157,9 @@ public class NodeInstaller {
                     // https://github.com/eirslett/frontend-maven-plugin/issues/794
                     // The downloading was probably interrupted and archive file is incomplete:
                     // delete it to retry from scratch
-                    this.logger.error("The archive file {} is corrupted and will be deleted. "
-                            + "Please try the build again.", archive.getPath());
+                    this.logger.error(
+                            "The archive file {} is corrupted and will be deleted. " + "Please try the build again.",
+                            archive.getPath());
                     archive.delete();
                     FileUtils.deleteDirectory(tmpDirectory);
                 }
@@ -169,11 +168,10 @@ public class NodeInstaller {
             }
 
             // Search for the node binary
-            File nodeBinary =
-                new File(tmpDirectory, longNodeFilename + File.separator + "bin" + File.separator + "node");
+            File nodeBinary = new File(tmpDirectory,
+                    longNodeFilename + File.separator + "bin" + File.separator + "node");
             if (!nodeBinary.exists()) {
-                throw new FileNotFoundException(
-                    "Could not find the downloaded Node.js binary in " + nodeBinary);
+                throw new FileNotFoundException("Could not find the downloaded Node.js binary in " + nodeBinary);
             } else {
                 File destinationDirectory = getInstallDirectory();
 
@@ -185,18 +183,18 @@ public class NodeInstaller {
                 try {
                     Files.move(nodeBinary.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
-                    throw new InstallationException("Could not install Node: Was not allowed to rename "
-                        + nodeBinary + " to " + destination);
+                    throw new InstallationException(
+                            "Could not install Node: Was not allowed to rename " + nodeBinary + " to " + destination);
                 }
 
                 if (!destination.setExecutable(true, false)) {
                     throw new InstallationException(
-                        "Could not install Node: Was not allowed to make " + destination + " executable.");
+                            "Could not install Node: Was not allowed to make " + destination + " executable.");
                 }
 
                 if (npmProvided()) {
                     File tmpNodeModulesDir = new File(tmpDirectory,
-                        longNodeFilename + File.separator + "lib" + File.separator + "node_modules");
+                            longNodeFilename + File.separator + "lib" + File.separator + "node_modules");
                     File nodeModulesDirectory = new File(destinationDirectory, "node_modules");
                     File npmDirectory = new File(nodeModulesDirectory, "npm");
                     FileUtils.copyDirectory(tmpNodeModulesDir, nodeModulesDirectory);
@@ -225,41 +223,39 @@ public class NodeInstaller {
 
     private void installNodeWithNpmForWindows() throws InstallationException {
         try {
-            final String longNodeFilename =
-                this.config.getPlatform().getLongNodeFilename(this.nodeVersion, true);
+            final String longNodeFilename = this.config.getPlatform().getLongNodeFilename(this.nodeVersion, true);
             String downloadUrl = this.nodeDownloadRoot
-                + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, true);
-            
+                    + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, true);
+
             this.logger.info("###########2test haqq:");
-            
+
             String classifier = this.config.getPlatform().getNodeClassifier();
 
             File tmpDirectory = getTempDirectory();
 
             CacheDescriptor cacheDescriptor = new CacheDescriptor("node", this.nodeVersion, classifier,
-                this.config.getPlatform().getArchiveExtension());
-            
+                    this.config.getPlatform().getArchiveExtension());
+
             File archive = this.config.getCacheResolver().resolve(cacheDescriptor);
-            
+
             File[] binary = downloadShaFile(classifier);
-            
+
             File binarySha = binary[0];
-            
+
             File binaryShaFile = binary[1];
-            
+
             downloadFileIfMissing(downloadUrl, archive, this.userName, this.password);
-            
+
             extractFile(archive, tmpDirectory);
-            
+
             extractFile(binarySha, tmpDirectory);
-            
+
             extractFile(binaryShaFile, tmpDirectory);
 
             // Search for the node binary
             File nodeBinary = new File(tmpDirectory, longNodeFilename + File.separator + "node.exe");
             if (!nodeBinary.exists()) {
-                throw new FileNotFoundException(
-                    "Could not find the downloaded Node.js binary in " + nodeBinary);
+                throw new FileNotFoundException("Could not find the downloaded Node.js binary in " + nodeBinary);
             } else {
                 File destinationDirectory = getInstallDirectory();
 
@@ -268,13 +264,12 @@ public class NodeInstaller {
                 try {
                     Files.move(nodeBinary.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 } catch (IOException e) {
-                    throw new InstallationException("Could not install Node: Was not allowed to rename "
-                        + nodeBinary + " to " + destination);
+                    throw new InstallationException(
+                            "Could not install Node: Was not allowed to rename " + nodeBinary + " to " + destination);
                 }
 
                 if ("provided".equals(this.npmVersion)) {
-                    File tmpNodeModulesDir =
-                        new File(tmpDirectory, longNodeFilename + File.separator + "node_modules");
+                    File tmpNodeModulesDir = new File(tmpDirectory, longNodeFilename + File.separator + "node_modules");
                     File nodeModulesDirectory = new File(destinationDirectory, "node_modules");
                     FileUtils.copyDirectory(tmpNodeModulesDir, nodeModulesDirectory);
                 }
@@ -294,10 +289,10 @@ public class NodeInstaller {
 
     private void installNodeForWindows() throws InstallationException {
         final String downloadUrl = this.nodeDownloadRoot
-            + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
-        
+                + this.config.getPlatform().getNodeDownloadFilename(this.nodeVersion, false);
+
         this.logger.info("###########3test haqq:");
-        
+
         try {
             File destinationDirectory = getInstallDirectory();
 
@@ -305,15 +300,14 @@ public class NodeInstaller {
 
             String classifier = this.config.getPlatform().getNodeClassifier();
 
-            CacheDescriptor cacheDescriptor =
-                new CacheDescriptor("node", this.nodeVersion, classifier, "exe");
-            
+            CacheDescriptor cacheDescriptor = new CacheDescriptor("node", this.nodeVersion, classifier, "exe");
+
             File binary = this.config.getCacheResolver().resolve(cacheDescriptor);
-            
+
             downloadShaFile(classifier);
-            
+
             downloadFileIfMissing(downloadUrl, binary, this.userName, this.password);
-            
+
             this.logger.info("Copying node binary from {} to {}", binary, destination);
             FileUtils.copyFile(binary, destination);
 
@@ -356,18 +350,18 @@ public class NodeInstaller {
     }
 
     private void downloadFileIfMissing(String downloadUrl, File destination, String userName, String password)
-        throws DownloadException {
+            throws DownloadException {
         if (!destination.exists()) {
             downloadFile(downloadUrl, destination, userName, password);
         }
     }
 
     private void downloadFile(String downloadUrl, File destination, String userName, String password)
-        throws DownloadException {
+            throws DownloadException {
         this.logger.info("Downloading {} to {}", downloadUrl, destination);
         this.fileDownloader.download(downloadUrl, destination.getPath(), userName, password);
     }
-    
+
     private File[] downloadShaFile(String classifier) throws DownloadException {
         String downloadShasumFile = this.nodeDownloadRoot + "/" + this.nodeVersion + "/SHASUMS256.txt";
         String downloadShasumFileSign = this.nodeDownloadRoot + "/" + this.nodeVersion + "/SHASUMS256.txt.sig";
@@ -382,15 +376,17 @@ public class NodeInstaller {
         downloadFile(downloadShasumFile, binaryShaFile, this.userName, this.password);
 
         downloadFile(downloadShasumFileSign, binaryShaFileSign, this.userName, this.password);
-
+        
         File binary[] = new File[2];
 
         binary[0] = binaryShaFile;
 
         binary[1] = binaryShaFileSign;
 
+        File publicKey = new File(getClass().getClassLoader().getResource("pgp_node_key/key.txt").getFile());
+        
         try {
-            boolean value = GpgSignatureVerif.verify(binary[0], binary[1]);
+            boolean value = GpgSignatureVerif.verify(binary[0], binary[1], publicKey);
 
             this.logger.info("##############haqq: " + value);
 
