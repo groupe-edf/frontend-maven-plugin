@@ -7,10 +7,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Provider;
 import java.security.Security;
+import java.util.Iterator;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureList;
@@ -24,29 +26,45 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentVerifierBuilderProv
  */
 public class GpgSignatureVerif {
 
-    private static PGPPublicKeyRingCollection pgpPubRingCollection;
-    
-    public GpgSignatureVerif() throws IOException, PGPException {
-        this(Thread.currentThread().getContextClassLoader().getResourceAsStream("C:\\Users\\MAAF4C6N\\.m2\\repository\\com\\github\\eirslett\\pubring.gpg"));
-    }
+    public static PGPPublicKey readPublicKey(InputStream in)
+            throws IOException, PGPException {
+         in = PGPUtil.getDecoderStream(in);
 
-    public GpgSignatureVerif(InputStream publicKey) throws IOException, PGPException {
-        Provider provider = new BouncyCastleProvider();
-        Security.addProvider(provider);
-        pgpPubRingCollection = new PGPPublicKeyRingCollection(PGPUtil.getDecoderStream(publicKey),
-                new JcaKeyFingerprintCalculator());
-    }
-    
-    public static boolean verify(File data, File signature) {
+         PGPPublicKeyRingCollection pgpPub = new PGPPublicKeyRingCollection(in, new JcaKeyFingerprintCalculator() );
+         Iterator<PGPPublicKeyRing> rIt = pgpPub.getKeyRings();
+
+         while (rIt.hasNext()) {
+            PGPPublicKeyRing kRing = (PGPPublicKeyRing) rIt.next();
+            Iterator<PGPPublicKey> kIt = kRing.getPublicKeys();
+
+            while (kIt.hasNext()) {
+                PGPPublicKey k = (PGPPublicKey) kIt.next();
+
+                if (k.isEncryptionKey()) {
+                    return k;
+                }
+            }
+         }
+
+         throw new IllegalArgumentException(
+                "Can't find encryption key in key ring.");
+         }
+              
+    public static boolean verify(File data, File signature, File publicKey)  {
         try {
-            return verify(new FileInputStream(data), new FileInputStream(signature));
+            return verify(new FileInputStream(data), new FileInputStream(signature), new FileInputStream(publicKey));
         } catch (FileNotFoundException e) {
             return false;
         }
+        
     }
-
-    private static boolean verify(InputStream signedData, InputStream signature) {
+    
+    private static boolean verify(InputStream signedData, InputStream signature, InputStream publicKey) {
         try {
+            //PGPPublicKey pKey= readPublicKey(publicKey);
+            PGPPublicKeyRingCollection pgpPubRingCollection = new PGPPublicKeyRingCollection(PGPUtil.getDecoderStream(publicKey),
+                    new JcaKeyFingerprintCalculator());
+            
             signature = PGPUtil.getDecoderStream(signature);
 
             JcaPGPObjectFactory pgpFact = new JcaPGPObjectFactory(signature);
